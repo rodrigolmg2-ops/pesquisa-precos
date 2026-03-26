@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PesquisaPreços.gov — Sistema de Pesquisa de Preços Públicos</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg:#0a0e1a; --surface:#111827; --surface2:#1a2234; --surface3:#1f2d42;
+    --border:#2a3a52; --border2:#3a4e6a;
+    --accent:#00d4aa; --accent2:#0099ff; --accent3:#ff6b35;
+    --text:#e8edf5; --text2:#9aafc5; --text3:#5d7494;
+    --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
+    --radius:8px; --font-mono:'IBM Plex Mono',monospace; --font-sans:'IBM Plex Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-weight:600;font-size:15px}
+  .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .logo span{color:var(--accent)}
+  .header-info{display:flex;align-items:center;gap:16px}
+  .badge{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:3px 10px;border-radius:4px;font-size:11px;font-family:var(--font-mono)}
+  .app{max-width:1440px;margin:0 auto;padding:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .card-title{font-size:13px;font-weight:600;font-family:var(--font-mono);display:flex;align-items:center;gap:8px}
+  .card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .card-body{padding:20px}
+
+  /* TOGGLE */
+  .catalog-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px;gap:2px;width:fit-content}
+  .toggle-btn{padding:9px 24px;border:1px solid transparent;border-radius:4px;cursor:pointer;font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.5px;transition:all .2s;background:transparent;color:var(--text3)}
+  .toggle-btn.active[data-type="material"]{background:linear-gradient(135deg,#00d4aa18,#00d4aa28);color:var(--accent);border-color:var(--accent);box-shadow:0 0 14px #00d4aa22}
+  .toggle-btn.active[data-type="servico"]{background:linear-gradient(135deg,#0099ff18,#0099ff28);color:var(--accent2);border-color:var(--accent2);box-shadow:0 0 14px #0099ff22}
+  .toggle-btn:hover:not(.active){background:var(--surface3);color:var(--text2)}
+  .toggle-label{font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px}
+
+  /* FORM */
+  label{display:block;font-size:11px;font-weight:500;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  input,select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:6px;font-family:var(--font-sans);font-size:13px;transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px #00d4aa18}
+  select option{background:var(--surface2);color:var(--text)}
+  .form-row{display:grid;gap:16px;margin-bottom:16px}
+  .cols-2{grid-template-columns:1fr 1fr}
+  .cols-3{grid-template-columns:1fr 1fr 1fr}
+  .cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .input-hint{font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--font-mono)}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:6px;font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s;white-space:nowrap}
+  .btn-primary{background:var(--accent);color:#0a0e1a}
+  .btn-primary:hover{background:#00e8bb;box-shadow:0 0 16px #00d4aa44}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+  .btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+  .btn-secondary:hover{background:var(--surface3);color:var(--text)}
+  .btn-success{background:#16a34a;color:#fff}
+  .btn-success:hover{background:#15803d;box-shadow:0 0 12px #22c55e33}
+  .btn-success:disabled{opacity:.4;cursor:not-allowed}
+
+  /* STATUS */
+  .status-bar{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-top:16px}
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--warning);animation:pulse 1s infinite;flex-shrink:0}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+  .progress-wrap{flex:1;background:var(--surface3);border-radius:3px;height:4px;overflow:hidden}
+  .progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .3s ease;width:0%}
+
+  /* TABS */
+  .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 20px}
+  .tab-btn{padding:12px 16px;background:none;border:none;color:var(--text3);cursor:pointer;font-family:var(--font-sans);font-size:13px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;display:flex;align-items:center;gap:6px}
+  .tab-btn:hover{color:var(--text2)}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-count{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1px 7px;font-size:10px;font-family:var(--font-mono);color:var(--text3)}
+  .tab-btn.active .tab-count{background:#00d4aa22;border-color:var(--accent);color:var(--accent)}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+
+  /* TABLE */
+  .table-wrap{overflow-x:auto;overflow-y:auto;max-height:500px}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+  thead tr{background:var(--surface2);position:sticky;top:0;z-index:2}
+  thead th{padding:10px 12px;text-align:left;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+  tbody tr:hover{background:var(--surface2)}
+  tbody tr.excluded{opacity:.4}
+  tbody tr.outlier td:first-child{border-left:2px solid var(--warning)}
+  tbody tr.duplicate td:first-child{border-left:2px solid var(--accent2)}
+  tbody td{padding:9px 12px;color:var(--text2);vertical-align:middle;white-space:nowrap}
+  tbody td.desc{white-space:normal;max-width:260px;color:var(--text);font-size:12px;line-height:1.4}
+  .price-value{font-family:var(--font-mono);font-weight:600;color:var(--text);font-size:13px}
+
+  /* TAGS */
+  .tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-family:var(--font-mono);font-weight:600;text-transform:uppercase}
+  .tag-outlier{background:#f59e0b22;color:var(--warning);border:1px solid #f59e0b44}
+  .tag-dup{background:#0099ff22;color:var(--accent2);border:1px solid #0099ff44}
+  .tag-ok{background:#22c55e22;color:var(--success);border:1px solid #22c55e44}
+  .tag-excl{background:#ef444422;color:var(--danger);border:1px solid #ef444444}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:20px}
+  .stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:14px 16px}
+  .stat-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .stat-value{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--text)}
+  .stat-sub{font-size:10px;color:var(--text3);margin-top:3px}
+
+  /* CHART */
+  .dist-chart{padding:0 20px 20px}
+  .dist-bar-wrap{display:flex;flex-direction:column;gap:8px}
+  .dist-bar-row{display:flex;align-items:center;gap:10px;font-size:11px;font-family:var(--font-mono)}
+  .dist-bar-label{width:120px;color:var(--text3);text-align:right;white-space:nowrap}
+  .dist-bar-track{flex:1;background:var(--surface3);border-radius:2px;height:20px;overflow:hidden}
+  .dist-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s ease}
+  .dist-bar-val{width:80px;color:var(--text2)}
+
+  /* MISC */
+  .empty-state{padding:48px 20px;text-align:center;color:var(--text3)}
+  .empty-icon{font-size:36px;margin-bottom:12px;opacity:.4}
+  .empty-text{font-size:13px;font-family:var(--font-mono)}
+  .alert{padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .alert-info{background:#0099ff15;border:1px solid #0099ff44;color:#5bb8ff}
+  .alert-warning{background:#f59e0b15;border:1px solid #f59e0b44;color:#fbbf24}
+  .alert-error{background:#ef444415;border:1px solid #ef444444;color:#f87171}
+  .alert-success{background:#22c55e15;border:1px solid #22c55e44;color:#4ade80}
+  .section-gap{margin-top:20px}
+  hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+  code{background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:3px;font-family:var(--font-mono);font-size:11px;color:var(--accent)}
+  .api-status{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--text3)}
+  .api-dot{width:5px;height:5px;border-radius:50%;background:var(--border2)}
+  .api-dot.ok{background:var(--success)}
+  .api-dot.err{background:var(--danger)}
+  .log-entry{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--font-mono)}
+  .log-time{color:var(--text3);white-space:nowrap;min-width:80px}
+  .log-msg{color:var(--text2)}
+  .log-ok{color:var(--success)}
+  .log-err{color:var(--danger)}
+  .log-warn{color:var(--warning)}
+  .btn-exclude{background:none;border:1px solid var(--border);color:var(--text3);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px;font-family:var(--font-mono);transition:all .2s}
+  .btn-exclude:hover{border-color:var(--danger);color:var(--danger)}
+  .btn-exclude.excluded{background:#ef444422;border-color:var(--danger);color:var(--danger)}
+  .section-title{font-size:11px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+  @media(max-width:768px){
+    .app{padding:12px}
+    .cols-4,.cols-3{grid-template-columns:1fr 1fr}
+    .cols-2{grid-template-columns:1fr}
+    .stats-grid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚖️</div>
+    <span>PesquisaPreços</span>.gov
+  </div>
+  <div class="header-info">
+    <div class="api-status">
+      <div class="api-dot" id="dotProxy"></div>
+      <span id="proxyLabel">verificando proxy...</span>
+    </div>
+    <div class="badge">API Compras.gov v2.0</div>
+  </div>
+</header>
+
+<div class="app">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="dot"></div>Nova Pesquisa de Preços</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);" id="endpointDisplay">
+        endpoint: <code id="endpointLabel">modulo-pesquisa-preco/1_consultarMaterial</code>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <!-- TOGGLE CATMAT / CATSER -->
+      <div style="margin-bottom:20px;">
+        <div class="toggle-label">Tipo de Catálogo — selecione o que deseja pesquisar</div>
+        <div class="catalog-toggle">
+          <button class="toggle-btn active" data-type="material" id="btnCatmat" onclick="setCatalog('material')">
+            📦 CATMAT &nbsp;—&nbsp; Material
+          </button>
+          <button class="toggle-btn" data-type="servico" id="btnCatser" onclick="setCatalog('servico')">
+            🔧 CATSER &nbsp;—&nbsp; Serviço
+          </button>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="form-row cols-2">
+        <div>
+          <label>Descrição / Objeto da Pesquisa *</label>
+          <input type="text" id="descricao" placeholder="Ex: Papel A4, Serviço de limpeza predial..." />
+          <div class="input-hint">Texto livre para identificar o objeto (não filtra na API, serve para identificação)</div>
+        </div>
+        <div>
+          <label id="codigoLabel">Código CATMAT (opcional)</label>
+          <input type="text" id="codigoCatalogo" placeholder="Ex: 358001, 403100..." />
+          <div class="input-hint" id="codigoHint">Código do item no Catálogo de Materiais — parâmetro: codigoItemCatalogo</div>
+        </div>
+      </div>
+
+      <div class="form-row cols-4">
+        <div>
+          <label>Data Inicial *</label>
+          <input type="date" id="dataInicial" />
+        </div>
+        <div>
+          <label>Data Final *</label>
+          <input type="date" id="dataFinal" />
+        </div>
+        <div>
+          <label>Quantidade</label>
+          <input type="number" id="quantidade" placeholder="Ex: 100" min="1" />
+        </div>
+        <div>
+          <label>Unidade de Medida</label>
+          <input type="text" id="unidadeMedida" placeholder="UN, CX, KG..." />
+        </div>
+      </div>
+
+      <div class="form-row cols-4">
+        <div>
+          <label>UF</label>
+          <select id="uf">
+            <option value="">Todos os estados</option>
+            <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+            <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+            <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+            <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+            <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+            <option>RO</option><option>RR</option><option>RS</option><option>SC</option>
+            <option>SE</option><option>SP</option><option>TO</option>
+          </select>
+        </div>
+        <div>
+          <label>Código UASG</label>
+          <input type="text" id="codigoUasg" placeholder="Ex: 153063" />
+          <div class="input-hint">Unidade gestora específica</div>
+        </div>
+        <div>
+          <label>Esfera</label>
+          <select id="esfera">
+            <option value="">Todas</option>
+            <option value="F">Federal</option>
+            <option value="E">Estadual</option>
+            <option value="M">Municipal</option>
+          </select>
+        </div>
+        <div>
+          <label>Poder</label>
+          <select id="poder">
+            <option value="">Todos</option>
+            <option value="E">Executivo</option>
+            <option value="L">Legislativo</option>
+            <option value="J">Judiciário</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnExecutar" onclick="executarPesquisa()">🔍 Executar Pesquisa</button>
+        <button class="btn btn-secondary" onclick="limparForm()">✕ Limpar</button>
+        <button class="btn btn-success" id="btnExportar" onclick="exportarExcel()" disabled>📊 Exportar Excel</button>
+        <div style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text3);" id="recordCount"></div>
+      </div>
+
+      <div class="status-bar" id="statusBar" style="display:none;">
+        <div class="pulse" id="statusPulse"></div>
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:4px;" id="statusMsg">Iniciando...</div>
+          <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);" id="pageCounter"></div>
+      </div>
+
+      <div id="alertZone" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="section-gap">
+    <div class="card" id="resultsCard" style="display:none;">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('raw')" id="tab-raw">📋 Resultados Brutos <span class="tab-count" id="cnt-raw">0</span></button>
+        <button class="tab-btn" onclick="showTab('treated')" id="tab-treated">🔬 Tratados <span class="tab-count" id="cnt-treated">0</span></button>
+        <button class="tab-btn" onclick="showTab('stats')" id="tab-stats">📈 Estatísticas</button>
+        <button class="tab-btn" onclick="showTab('log')" id="tab-log">🗂️ Log <span class="tab-count" id="cnt-log">0</span></button>
+      </div>
+
+      <!-- RAW -->
+      <div class="tab-content active" id="tab-content-raw">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Descrição</th><th>Cód. Catálogo</th><th>Preço Unit.</th>
+              <th>Qtd.</th><th>Unid.</th><th>Fornecedor</th><th>UASG</th>
+              <th>Órgão</th><th>UF</th><th>Esfera</th><th>Modalidade</th>
+              <th>Data Compra</th><th>Nº Compra</th>
+            </tr></thead>
+            <tbody id="tbodyRaw">
+              <tr><td colspan="14"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Execute uma pesquisa para ver os resultados</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TREATED -->
+      <div class="tab-content" id="tab-content-treated">
+        <div style="padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:11px;">
+          <span style="color:var(--text3);font-family:var(--font-mono);">Legenda:</span>
+          <span class="tag tag-ok">✓ Aderente</span>
+          <span class="tag tag-outlier">⚠ Outlier</span>
+          <span class="tag tag-dup">≡ Duplicado</span>
+          <span class="tag tag-excl">✕ Excluído</span>
+          <span style="margin-left:auto;color:var(--text3);font-family:var(--font-mono);">Outlier = ±2σ da média</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Ação</th><th>#</th><th>Descrição</th><th>Preço Unit.</th>
+              <th>Desvio %</th><th>Status</th><th>Motivo Exclusão</th>
+              <th>UASG / Órgão</th><th>UF</th><th>Data</th>
+            </tr></thead>
+            <tbody id="tbodyTreated">
+              <tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔬</div><div class="empty-text">Os dados tratados aparecerão aqui</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="tab-content" id="tab-content-stats">
+        <div class="stats-grid" id="statsGrid">
+          <div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">📈</div><div class="empty-text">Execute uma pesquisa para ver as estatísticas</div></div>
+        </div>
+        <div id="distChart" style="display:none;">
+          <div style="padding:0 20px 4px;"><div class="section-title">Distribuição de Preços</div></div>
+          <div class="dist-chart"><div class="dist-bar-wrap" id="distBars"></div></div>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div class="tab-content" id="tab-content-log">
+        <div style="padding:16px 20px;max-height:400px;overflow-y:auto;" id="logContainer">
+          <div class="empty-state"><div class="empty-icon">🗂️</div><div class="empty-text">Log de execução</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+const S = { type:'material', raw:[], treated:[], logs:[], meta:{} };
+
+// ─── PROXY BASE URL (auto-detecta local vs produção) ─────────────────────────
+const PROXY = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? ''           // mesmo servidor
+  : '';          // em produção também usa caminho relativo
+
+// ─── HEALTHCHECK ──────────────────────────────────────────────────────────────
+async function checkProxy() {
+  try {
+    const r = await fetch(PROXY + '/api/health', { signal: AbortSignal.timeout(4000) });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      document.getElementById('dotProxy').className = 'api-dot ok';
+      document.getElementById('proxyLabel').textContent = 'proxy ativo — dados reais';
+      addLog('Proxy backend ativo — chamadas reais à API Compras.gov', 'ok');
+    }
+  } catch {
+    document.getElementById('dotProxy').className = 'api-dot err';
+    document.getElementById('proxyLabel').textContent = 'proxy offline — modo demo';
+    addLog('Proxy offline — usando dados demonstrativos', 'warn');
+  }
+}
+
+// ─── TOGGLE CATMAT/CATSER ─────────────────────────────────────────────────────
+function setCatalog(t) {
+  S.type = t;
+  ['material','servico'].forEach(v => {
+    document.getElementById(v === 'material' ? 'btnCatmat' : 'btnCatser')
+      .classList.toggle('active', t === v);
+  });
+  const isMat = t === 'material';
+  document.getElementById('endpointLabel').textContent = isMat
+    ? 'modulo-pesquisa-preco/1_consultarMaterial'
+    : 'modulo-pesquisa-preco/3_consultarServico';
+  document.getElementById('codigoLabel').textContent = isMat ? 'Código CATMAT (opcional)' : 'Código CATSER (opcional)';
+  document.getElementById('codigoHint').textContent  = isMat
+    ? 'Catálogo de Materiais — parâmetro: codigoItemCatalogo'
+    : 'Catálogo de Serviços — parâmetro: codigoItemCatalogo';
+  document.getElementById('codigoCatalogo').placeholder = isMat ? 'Ex: 358001, 403100...' : 'Ex: 10182, 17663...';
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmtM  = v => 'R$ ' + parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtD  = d => { try { return new Date(d).toLocaleDateString('pt-BR'); } catch { return d||'—'; } };
+
+function addLog(msg, type='') {
+  S.logs.push({ time: new Date().toLocaleTimeString('pt-BR'), msg, type });
+  document.getElementById('cnt-log').textContent = S.logs.length;
+  const c = document.getElementById('logContainer');
+  c.innerHTML = S.logs.slice().reverse().map(l =>
+    `<div class="log-entry"><span class="log-time">[${l.time}]</span><span class="log-msg ${l.type?'log-'+l.type:''}">${l.msg}</span></div>`
+  ).join('');
+}
+
+function showAlert(msg, type='info') {
+  const icons = {info:'ℹ️',warning:'⚠️',error:'❌',success:'✅'};
+  document.getElementById('alertZone').innerHTML =
+    `<div class="alert alert-${type}">${icons[type]} ${msg}</div>`;
+  if (type !== 'error') setTimeout(() => document.getElementById('alertZone').innerHTML='', 7000);
+}
+
+function setProgress(pct, msg='') {
+  document.getElementById('progressBar').style.width = pct + '%';
+  if (msg) document.getElementById('statusMsg').textContent = msg;
+}
+
+function showTab(n) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  document.getElementById('tab-content-'+n).classList.add('active');
+}
+
+function limparForm() {
+  ['descricao','codigoCatalogo','dataInicial','dataFinal','quantidade','unidadeMedida','codigoUasg']
+    .forEach(id => document.getElementById(id).value='');
+  ['uf','esfera','poder'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('alertZone').innerHTML='';
+}
+
+// ─── EXECUTAR PESQUISA ────────────────────────────────────────────────────────
+async function executarPesquisa() {
+  const descricao   = document.getElementById('descricao').value.trim();
+  const dataInicial = document.getElementById('dataInicial').value;
+  const dataFinal   = document.getElementById('dataFinal').value;
+
+  if (!descricao) { showAlert('Preencha a descrição do objeto.','warning'); return; }
+  if (!dataInicial || !dataFinal) { showAlert('Preencha as datas inicial e final.','warning'); return; }
+  if (new Date(dataInicial) > new Date(dataFinal)) { showAlert('Data inicial deve ser anterior à data final.','warning'); return; }
+
+  S.raw=[]; S.treated=[]; S.logs=[];
+  S.meta = { descricao, dataInicial, dataFinal, tipo: S.type, inicio: new Date().toISOString() };
+
+  const params = {
+    codigoCatalogo: document.getElementById('codigoCatalogo').value.trim(),
+    dataInicial: dataInicial.replace(/-/g,''),
+    dataFinal:   dataFinal.replace(/-/g,''),
+    uf:          document.getElementById('uf').value,
+    codigoUasg:  document.getElementById('codigoUasg').value.trim(),
+    esfera:      document.getElementById('esfera').value,
+    poder:       document.getElementById('poder').value
+  };
+
+  document.getElementById('btnExecutar').disabled = true;
+  document.getElementById('btnExportar').disabled  = true;
+  document.getElementById('statusBar').style.display  = 'flex';
+  document.getElementById('resultsCard').style.display = 'block';
+  document.getElementById('alertZone').innerHTML = '';
+  document.getElementById('statusPulse').style.background = 'var(--warning)';
+
+  addLog(`Pesquisa iniciada [${S.type.toUpperCase()}]: "${descricao}"`,'ok');
+  addLog(`Endpoint: /api/pesquisa-preco/${S.type}`,'');
+  addLog(`Período: ${dataInicial} → ${dataFinal}`,'');
+  if (params.codigoCatalogo) addLog(`Código catálogo: ${params.codigoCatalogo}`,'');
+  if (params.uf) addLog(`Filtro UF: ${params.uf}`,'');
+
+  setProgress(5,'Conectando ao proxy...');
+
+  try {
+    let page = 1, totalPages = 1, totalRec = 0;
+    const MAX = 15;
+
+    while (page <= totalPages && page <= MAX) {
+      setProgress(Math.min(10+(page/Math.max(totalPages,5))*70,82), `Coletando — página ${page}/${totalPages === 1 ? '?' : totalPages}...`);
+      document.getElementById('pageCounter').textContent = `Pág. ${page}`;
+
+      // ── Monta URL do proxy ──
+      const qs = new URLSearchParams();
+      if (params.codigoCatalogo) qs.set('codigoItemCatalogo', params.codigoCatalogo);
+      if (params.dataInicial)    qs.set('dataInicial', params.dataInicial);
+      if (params.dataFinal)      qs.set('dataFinal', params.dataFinal);
+      if (params.uf)             qs.set('uf', params.uf);
+      if (params.codigoUasg)     qs.set('codigoUasg', params.codigoUasg);
+      if (params.esfera)         qs.set('esfera', params.esfera);
+      if (params.poder)          qs.set('poder', params.poder);
+      qs.set('pagina', page);
+
+      const url = `${PROXY}/api/pesquisa-preco/${S.type}?${qs.toString()}`;
+      addLog(`GET ${url.slice(0,90)}...`);
+
+      let data;
+      try {
+        const resp = await fetch(url, { headers: { Accept:'application/json' } });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        data = await resp.json();
+      } catch (fetchErr) {
+        addLog(`Proxy indisponível — usando dados demo (${fetchErr.message})`,'warn');
+        data = demoData(params, page);
+      }
+
+      const resultados = data.resultado || data.result || data.data || [];
+
+      if (page === 1) {
+        totalPages = data.totalPaginas || data.totalPages || 1;
+        totalRec   = data.totalRegistros || resultados.length;
+        addLog(`Resposta: ${totalRec} registros | ${totalPages} páginas`,'ok');
+      }
+
+      const norm = resultados.map((r,i) => normalizar(r, (page-1)*500+i+1));
+      S.raw.push(...norm);
+      document.getElementById('cnt-raw').textContent = S.raw.length;
+      renderRaw();
+
+      page++;
+      await sleep(100);
+    }
+
+    addLog(`Coleta concluída: ${S.raw.length} itens`,'ok');
+    setProgress(85,'Tratando dados...');
+    await sleep(150);
+    tratar();
+
+    setProgress(95,'Calculando estatísticas...');
+    await sleep(80);
+    estatisticas();
+
+    setProgress(100,'✅ Pesquisa concluída!');
+    document.getElementById('statusPulse').style.background = 'var(--success)';
+    document.getElementById('btnExportar').disabled = false;
+    document.getElementById('cnt-treated').textContent = S.treated.length;
+    document.getElementById('recordCount').textContent = `${S.raw.length} registros`;
+    S.meta.fim = new Date().toISOString();
+
+    addLog(`Finalizado — ${S.raw.length} brutos | ${S.treated.filter(r=>!r.excluido).length} válidos`,'ok');
+    showAlert(`Concluído! ${S.raw.length} registros | ${S.treated.filter(r=>!r.excluido).length} válidos após tratamento.`,'success');
+
+  } catch(err) {
+    addLog('ERRO: '+err.message,'err');
+    showAlert('Erro: '+err.message,'error');
+    setProgress(0,'❌ Erro');
+    document.getElementById('statusPulse').style.background = 'var(--danger)';
+  }
+
+  document.getElementById('btnExecutar').disabled = false;
+}
+
+// ─── NORMALIZAR ───────────────────────────────────────────────────────────────
+function normalizar(r, idx) {
+  return {
+    idx,
+    descricaoItem:      r.descricaoItem      || r.descricao_item      || '—',
+    codigoItemCatalogo: r.codigoItemCatalogo || r.codigo_item_catalogo|| '—',
+    precoUnitario:      parseFloat(r.precoUnitario || r.preco_unitario || 0),
+    quantidade:         parseFloat(r.quantidade || 0),
+    siglaUnidadeMedida: r.siglaUnidadeMedida || r.sigla_unidade_medida|| '—',
+    nomeUnidadeMedida:  r.nomeUnidadeMedida  || r.nome_unidade_medida || '—',
+    nomeFornecedor:     r.nomeFornecedor     || r.nome_fornecedor     || '—',
+    niFornecedor:       r.niFornecedor       || r.ni_fornecedor       || '',
+    codigoUasg:         r.codigoUasg         || r.codigo_uasg         || '',
+    nomeUasg:           r.nomeUasg           || r.nome_uasg           || '—',
+    nomeOrgao:          r.nomeOrgao          || r.nome_orgao          || '—',
+    municipio:          r.municipio          || '—',
+    uf:                 r.uf                 || r.estado              || '—',
+    esfera:             r.esfera             || '—',
+    poder:              r.poder              || '—',
+    modalidade:         r.modalidade         || r.forma               || '—',
+    dataCompra:         r.dataCompra         || r.data_compra         || '',
+    idCompra:           r.idCompra           || r.id_compra           || ''
+  };
+}
+
+// ─── TRATAR DADOS ─────────────────────────────────────────────────────────────
+function tratar() {
+  const precos = S.raw.map(r=>r.precoUnitario).filter(p=>p>0);
+  if (!precos.length) { S.treated=[]; return; }
+
+  const media  = precos.reduce((a,b)=>a+b,0)/precos.length;
+  const desvio = Math.sqrt(precos.reduce((a,p)=>a+Math.pow(p-media,2),0)/precos.length);
+  const limInf = media - 2*desvio;
+  const limSup = media + 2*desvio;
+  const seen   = new Map();
+
+  S.treated = S.raw.filter(r=>r.precoUnitario>0).map(r => {
+    const key  = `${r.codigoItemCatalogo}|${r.precoUnitario.toFixed(2)}|${r.codigoUasg}`;
+    const isDup= seen.has(key); if(!isDup) seen.set(key,true);
+    const isOut= r.precoUnitario < limInf || r.precoUnitario > limSup;
+    return { ...r, aderente:!isOut, outlier:isOut, duplicado:isDup,
+             excluido:false, motivoExclusao:'',
+             desvioPct: media>0 ? ((r.precoUnitario-media)/media*100) : 0,
+             mediaRef:media, desvioRef:desvio };
+  });
+
+  renderTreated();
+}
+
+// ─── ESTATÍSTICAS ─────────────────────────────────────────────────────────────
+function estatisticas() {
+  const validos = S.treated.filter(r=>!r.excluido&&!r.outlier);
+  const todos   = S.treated.filter(r=>!r.excluido);
+  if (!todos.length) return;
+
+  const precos = todos.map(r=>r.precoUnitario).sort((a,b)=>a-b);
+  const n      = precos.length;
+  const media  = precos.reduce((a,b)=>a+b,0)/n;
+  const mediana= n%2===0 ? (precos[n/2-1]+precos[n/2])/2 : precos[Math.floor(n/2)];
+  const desvio = Math.sqrt(precos.reduce((a,p)=>a+Math.pow(p-media,2),0)/n);
+  const cv     = media>0 ? desvio/media*100 : 0;
+
+  document.getElementById('statsGrid').innerHTML = [
+    ['Média',        fmtM(media),      `${n} registros válidos`,       'var(--accent)'],
+    ['Mediana',      fmtM(mediana),    'Valor central',                ''],
+    ['Mínimo',       fmtM(precos[0]),  'Menor preço',                  'var(--success)'],
+    ['Máximo',       fmtM(precos[n-1]),'Maior preço',                  'var(--danger)'],
+    ['Desvio Padrão',fmtM(desvio),     `CV: ${cv.toFixed(1)}%`,        ''],
+    ['Total Bruto',  S.raw.length,     'Registros coletados',           ''],
+    ['Outliers',     S.treated.filter(r=>r.outlier).length,  'Fora de ±2σ','var(--warning)'],
+    ['Duplicados',   S.treated.filter(r=>r.duplicado).length,'Marcados',  'var(--accent2)'],
+    ['Catálogo',     S.type==='material'?'CATMAT':'CATSER','','var(--accent)'],
+    ['Excluídos',    S.treated.filter(r=>r.excluido).length, 'Manualmente','var(--danger)']
+  ].map(([label,val,sub,color]) =>
+    `<div class="stat-card">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value" ${color?`style="color:${color}"`:''}>${val}</div>
+      <div class="stat-sub">${sub}</div>
+    </div>`
+  ).join('');
+
+  // Distribuição
+  if (precos.length >= 3) {
+    const min=precos[0], max=precos[n-1], step=(max-min)/5||1;
+    const buckets=Array(5).fill(0);
+    precos.forEach(p=>{ const b=Math.min(Math.floor((p-min)/step),4); buckets[b]++; });
+    const maxB=Math.max(...buckets);
+    document.getElementById('distChart').style.display='block';
+    document.getElementById('distBars').innerHTML = buckets.map((c,i)=>
+      `<div class="dist-bar-row">
+        <div class="dist-bar-label">${fmtM(min+i*step)}</div>
+        <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${maxB>0?(c/maxB*100):0}%"></div></div>
+        <div class="dist-bar-val">${c} registros</div>
+      </div>`
+    ).join('');
+  }
+}
+
+// ─── RENDER RAW ───────────────────────────────────────────────────────────────
+function renderRaw() {
+  const tbody = document.getElementById('tbodyRaw');
+  if (!S.raw.length) { tbody.innerHTML='<tr><td colspan="14"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Sem resultados</div></div></td></tr>'; return; }
+  tbody.innerHTML = S.raw.map(r=>`
+    <tr>
+      <td style="color:var(--text3);font-family:var(--font-mono);">${r.idx}</td>
+      <td class="desc">${r.descricaoItem}</td>
+      <td><code>${r.codigoItemCatalogo}</code></td>
+      <td class="price-value">${r.precoUnitario>0?fmtM(r.precoUnitario):'—'}</td>
+      <td style="color:var(--text2);">${r.quantidade>0?r.quantidade.toLocaleString('pt-BR'):'—'}</td>
+      <td style="color:var(--text3);">${r.siglaUnidadeMedida}</td>
+      <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;" title="${r.nomeFornecedor}">${r.nomeFornecedor}</td>
+      <td><code>${r.codigoUasg}</code></td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;" title="${r.nomeOrgao}">${r.nomeOrgao}</td>
+      <td><span class="tag" style="background:var(--surface2);border:1px solid var(--border)">${r.uf}</span></td>
+      <td style="color:var(--text3);">${r.esfera}</td>
+      <td style="color:var(--text3);font-size:11px;">${r.modalidade}</td>
+      <td style="color:var(--text3);">${fmtD(r.dataCompra)}</td>
+      <td style="font-family:var(--font-mono);font-size:10px;color:var(--text3);">${r.idCompra}</td>
+    </tr>`).join('');
+}
+
+// ─── RENDER TREATED ───────────────────────────────────────────────────────────
+function renderTreated() {
+  const tbody = document.getElementById('tbodyTreated');
+  if (!S.treated.length) { tbody.innerHTML='<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔬</div><div class="empty-text">Sem dados tratados</div></div></td></tr>'; return; }
+  tbody.innerHTML = S.treated.map((r,i)=>{
+    const tag = r.excluido ? '<span class="tag tag-excl">✕ Excluído</span>'
+      : r.outlier   ? '<span class="tag tag-outlier">⚠ Outlier</span>'
+      : r.duplicado ? '<span class="tag tag-dup">≡ Duplicado</span>'
+      : '<span class="tag tag-ok">✓ Aderente</span>';
+    const desv = `<span style="color:${r.desvioPct>=0?'var(--danger)':'var(--success)'}">
+      ${r.desvioPct>=0?'+':''}${r.desvioPct.toFixed(1)}%</span>`;
+    return `<tr class="${r.excluido?'excluded':''} ${r.outlier?'outlier':''} ${r.duplicado?'duplicate':''}">
+      <td><button class="btn-exclude ${r.excluido?'excluded':''}" onclick="toggleExcluir(${i})">${r.excluido?'Restaurar':'Excluir'}</button></td>
+      <td style="color:var(--text3);font-family:var(--font-mono);">${r.idx}</td>
+      <td class="desc">${r.descricaoItem}</td>
+      <td class="price-value">${fmtM(r.precoUnitario)}</td>
+      <td>${desv}</td>
+      <td>${tag}</td>
+      <td style="font-size:11px;color:var(--text3);max-width:130px;">${r.motivoExclusao||'—'}</td>
+      <td style="font-size:11px;color:var(--text3);">${r.codigoUasg} / ${(r.nomeOrgao||'').substring(0,28)}...</td>
+      <td><span class="tag" style="background:var(--surface2);border:1px solid var(--border)">${r.uf}</span></td>
+      <td style="color:var(--text3);">${fmtD(r.dataCompra)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleExcluir(i) {
+  const r = S.treated[i];
+  r.excluido = !r.excluido;
+  if (r.excluido) {
+    const m = prompt('Justifique a exclusão (obrigatório):');
+    if (!m) { r.excluido=false; return; }
+    r.motivoExclusao = m;
+    addLog(`Item #${r.idx} excluído: "${m}"`,'warn');
+  } else {
+    r.motivoExclusao='';
+    addLog(`Item #${r.idx} restaurado`,'ok');
+  }
+  renderTreated();
+  estatisticas();
+}
+
+// ─── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
+function exportarExcel() {
+  if (!S.raw.length) { showAlert('Sem dados para exportar.','warning'); return; }
+  addLog('Exportando Excel...','');
+  const wb = XLSX.utils.book_new();
+
+  // Aba 1 — Consolidado
+  const validos = S.treated.filter(r=>!r.excluido&&!r.outlier);
+  const precos  = validos.map(r=>r.precoUnitario).sort((a,b)=>a-b);
+  const media   = precos.length ? precos.reduce((a,b)=>a+b,0)/precos.length : 0;
+  const mediana = precos.length%2===0 ? (precos[precos.length/2-1]+precos[precos.length/2])/2 : precos[Math.floor(precos.length/2)];
+  const desvio  = precos.length ? Math.sqrt(precos.reduce((a,p)=>a+Math.pow(p-media,2),0)/precos.length) : 0;
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ['PESQUISA DE PREÇOS — RESULTADO CONSOLIDADO'],[''],
+    ['Objeto:', S.meta.descricao||''],
+    ['Tipo:', S.type==='material'?'CATMAT — Material':'CATSER — Serviço'],
+    ['Período:', `${S.meta.dataInicial||''} a ${S.meta.dataFinal||''}`],
+    ['Data Execução:', new Date().toLocaleString('pt-BR')],
+    ['Fonte API:', 'dadosabertos.compras.gov.br — modulo-pesquisa-preco (v2.0, Fev/2026)'],
+    [''],['ESTATÍSTICAS'],
+    ['Total Bruto:', S.raw.length],
+    ['Válidos:', validos.length],
+    ['Outliers:', S.treated.filter(r=>r.outlier).length],
+    ['Duplicados:', S.treated.filter(r=>r.duplicado).length],
+    ['Excluídos Manual:', S.treated.filter(r=>r.excluido).length],
+    [''],
+    ['Média:', media], ['Mediana:', mediana],
+    ['Mínimo:', precos[0]||0], ['Máximo:', precos[precos.length-1]||0],
+    ['Desvio Padrão:', desvio],
+    ['CV (%):', media>0?(desvio/media*100):0]
+  ]), '1. Consolidado');
+
+  // Aba 2 — Base Bruta
+  const h2 = ['#','Descrição','Cód.Catálogo','Preço Unit.','Quantidade','Unidade','Fornecedor','CNPJ/CPF','Cód.UASG','Nome UASG','Órgão','Município','UF','Esfera','Poder','Modalidade','Data Compra','Nº Compra'];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h2,
+    ...S.raw.map(r=>[r.idx,r.descricaoItem,r.codigoItemCatalogo,r.precoUnitario,r.quantidade,r.siglaUnidadeMedida||r.nomeUnidadeMedida,r.nomeFornecedor,r.niFornecedor,r.codigoUasg,r.nomeUasg,r.nomeOrgao,r.municipio,r.uf,r.esfera,r.poder,r.modalidade,r.dataCompra,r.idCompra])
+  ]), '2. Base Bruta');
+
+  // Aba 3 — Tratamento
+  const h3 = ['#','Descrição','Preço Unit.','Desvio % Média','Aderente','Outlier','Duplicado','Excluído','Motivo Exclusão','UF','Data Compra'];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([h3,
+    ...S.treated.map(r=>[r.idx,r.descricaoItem,r.precoUnitario,(r.desvioPct||0).toFixed(2),r.aderente?'Sim':'Não',r.outlier?'Sim':'Não',r.duplicado?'Sim':'Não',r.excluido?'Sim':'Não',r.motivoExclusao||'',r.uf,r.dataCompra])
+  ]), '3. Tratamento');
+
+  // Aba 4 — Estatísticas
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ['Estatística','Valor'],
+    ['Qtd. Válidos', validos.length], ['Média', media], ['Mediana', mediana],
+    ['Mínimo', precos[0]||0], ['Máximo', precos[precos.length-1]||0],
+    ['Desvio Padrão', desvio], ['CV (%)', media>0?(desvio/media*100):0]
+  ]), '4. Estatísticas');
+
+  // Aba 5 — Metadados
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ['Campo','Valor'],
+    ['Sistema','PesquisaPreços.gov — Proxy + Frontend'],
+    ['API Compras.gov','dadosabertos.compras.gov.br/modulo-pesquisa-preco'],
+    ['Endpoint Material','/modulo-pesquisa-preco/1_consultarMaterial'],
+    ['Endpoint Serviço', '/modulo-pesquisa-preco/3_consultarServico'],
+    ['Versão Manual API','v2.0 — Fevereiro/2026'],
+    ['Tipo Catálogo', S.type==='material'?'CATMAT':'CATSER'],
+    ['Objeto', S.meta.descricao||''],
+    ['Data Início Filtro', S.meta.dataInicial||''],
+    ['Data Fim Filtro', S.meta.dataFinal||''],
+    ['Data Execução', S.meta.inicio||''],
+    ['Data Conclusão', S.meta.fim||''],
+    ['Critério Outlier','±2 desvios-padrão'],
+    ['Aviso','NÃO substitui análise humana. Toda exclusão deve ser justificada.']
+  ]), '5. Metadados');
+
+  const fn = `PesquisaPrecos_${(S.meta.descricao||'obj').substring(0,25).replace(/[^a-zA-Z0-9]/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, fn);
+  addLog(`Excel exportado: ${fn}`,'ok');
+  showAlert(`Arquivo gerado: ${fn}`,'success');
+}
+
+// ─── DADOS DEMO (fallback quando proxy offline) ───────────────────────────────
+function demoData(params, page) {
+  const desc = document.getElementById('descricao').value||'Item';
+  const orgaos  = ['MINISTÉRIO DA EDUCAÇÃO','UNIVERSIDADE FEDERAL','MINISTÉRIO DA SAÚDE','TRIBUNAL REGIONAL FEDERAL','PREFEITURA MUNICIPAL','INSTITUTO FEDERAL'];
+  const fornecs = ['DISTRIBUIDORA BRASIL LTDA','COMERCIAL NACIONAL S.A.','FORNECEDOR FEDERAL ME','DISTRIBUIDORA ALPHA LTDA'];
+  const ufs     = ['SP','RJ','MG','BA','RS','PR','PE','CE','PA','SC'];
+  const mods    = ['PREGÃO ELETRÔNICO','PREGÃO PRESENCIAL','DISPENSA','INEXIGIBILIDADE'];
+  const base    = 80 + Math.random()*150;
+  const num     = page===1 ? 30 : Math.max(0, 12-page*3);
+
+  return {
+    resultado: Array.from({length:num},(_,i)=>{
+      const v = Math.max(1, base*(1+(Math.random()-.5)*.6));
+      const uf_= params.uf||ufs[Math.floor(Math.random()*ufs.length)];
+      const d  = new Date(); d.setDate(d.getDate()-Math.floor(Math.random()*730));
+      const uasg=100000+Math.floor(Math.random()*900000);
+      return {
+        descricaoItem: desc+(S.type==='material'?' - UN':' - MENSAL'),
+        codigoItemCatalogo: params.codigoCatalogo||(S.type==='material'?'358001':'10182'),
+        precoUnitario: parseFloat(v.toFixed(2)),
+        quantidade: Math.floor(Math.random()*500)+1,
+        siglaUnidadeMedida: S.type==='material'?'UN':'MES',
+        nomeUnidadeMedida: S.type==='material'?'UNIDADE':'MENSAL',
+        nomeFornecedor: fornecs[Math.floor(Math.random()*fornecs.length)],
+        niFornecedor: `${Math.floor(Math.random()*90000000+10000000)}000100`,
+        codigoUasg: String(uasg),
+        nomeUasg: orgaos[Math.floor(Math.random()*orgaos.length)]+'/'+uf_,
+        nomeOrgao: orgaos[Math.floor(Math.random()*orgaos.length)],
+        municipio: ['SÃO PAULO','BRASÍLIA','RIO DE JANEIRO','CURITIBA','SALVADOR'][Math.floor(Math.random()*5)],
+        uf: uf_, esfera:'F', poder:'E',
+        modalidade: mods[Math.floor(Math.random()*mods.length)],
+        dataCompra: d.toISOString().slice(0,10),
+        idCompra: `${uasg}${d.getFullYear()}${String(i+1).padStart(6,'0')}`
+      };
+    }),
+    totalRegistros: 42,
+    totalPaginas: 2,
+    paginasRestantes: Math.max(0,1-(page-1))
+  };
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const hoje = new Date();
+  const ano  = new Date(hoje); ano.setFullYear(hoje.getFullYear()-1);
+  document.getElementById('dataFinal').value   = hoje.toISOString().slice(0,10);
+  document.getElementById('dataInicial').value = ano.toISOString().slice(0,10);
+  checkProxy();
+});
+</script>
+</body>
+</html>
