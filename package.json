@@ -1,122 +1,16 @@
-# PesquisaPreços.gov 🏛️
-
-Sistema de pesquisa de preços em contratações públicas.  
-Proxy Node.js + Frontend HTML — integrado com a API oficial **Compras.gov.br v2.0**.
-
----
-
-## 📁 Estrutura
-
-```
-pesquisa-precos/
-├── server.js          ← Proxy backend (Node.js + Express)
-├── package.json
-├── .gitignore
-├── railway.toml       ← Config Railway
-├── render.yaml        ← Config Render
-└── public/
-    └── index.html     ← Frontend completo
-```
-
----
-
-## 🔌 APIs integradas (endpoints verificados — Manual v2.0, Fev/2026)
-
-| Rota do Proxy | API Real |
-|---|---|
-| `GET /api/pesquisa-preco/material` | `dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial` |
-| `GET /api/pesquisa-preco/servico`  | `dadosabertos.compras.gov.br/modulo-pesquisa-preco/3_consultarServico` |
-| `GET /api/pncp/contratos`          | `pncp.gov.br/api/pncp/v1/contratos` |
-| `GET /api/health`                  | Healthcheck interno |
-
----
-
-## 🚀 DEPLOY — Escolha uma opção
-
-### Opção A — Railway (recomendado, gratuito)
-
-1. Acesse https://railway.app e crie conta com GitHub
-2. Clique em **"New Project" → "Deploy from GitHub repo"**
-3. Selecione o repositório `pesquisa-precos`
-4. Railway detecta automaticamente Node.js e faz o deploy
-5. Copie a URL gerada (ex: `https://pesquisa-precos.up.railway.app`)
-6. ✅ Pronto!
-
-### Opção B — Render (gratuito)
-
-1. Acesse https://render.com e crie conta com GitHub
-2. Clique em **"New Web Service"**
-3. Conecte o repositório
-4. Configure:
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-   - **Environment:** Node
-5. ✅ Deploy automático
-
-### Opção C — Rodar local
-
-```bash
-# Clone ou extraia o projeto
-cd pesquisa-precos
-
-# Instale dependências
-npm install
-
-# Inicie o servidor
-npm start
-
-# Acesse
-open http://localhost:3000
-```
-
----
-
-## 📤 Como subir no GitHub (passo a passo)
-
-```bash
-# 1. Crie conta em github.com
-# 2. Crie repositório novo: "pesquisa-precos" (público ou privado)
-# 3. No terminal:
-
-git init
-git add .
-git commit -m "feat: sistema pesquisa preços compras.gov"
-git branch -M main
-git remote add origin https://github.com/SEU_USUARIO/pesquisa-precos.git
-git push -u origin main
-
-# 4. Conecte o repo no Railway ou Render conforme acima
-```
-
----
-
-## ⚙️ Variáveis de ambiente (opcional)
-
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `PORT` | `3000` | Porta do servidor |
-
----
-
-## 📋 Parâmetros da API Compras.gov (Material e Serviço)
-
-| Parâmetro | Tipo | Descrição |
-|---|---|---|
-| `codigoItemCatalogo` | Inteiro | Código CATMAT ou CATSER |
-| `dataInicial` | String (YYYYMMDD) | Data início do período |
-| `dataFinal` | String (YYYYMMDD) | Data fim do período |
-| `uf` | String (2 chars) | Estado (ex: SP, RJ) |
-| `codigoUasg` | Inteiro | Código da unidade gestora |
-| `esfera` | String | F=Federal, E=Estadual, M=Municipal |
-| `poder` | String | E=Executivo, L=Legislativo, J=Judiciário |
-| `pagina` | Inteiro | Paginação dos resultados |
-
----
-
-## ⚠️ Avisos importantes
-
-- Este sistema **não substitui** a análise humana
-- Toda exclusão de item deve ser **justificada** no sistema
-- Os dados brutos são sempre preservados
-- A exportação Excel inclui **metadados completos** para auditoria
-- Fonte: Manual API Compras.gov.br v2.0 (Fevereiro/2026)
+{
+  "name": "pesquisa-precos-gov",
+  "version": "1.0.0",
+  "description": "Sistema de Pesquisa de Preços",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "license": "MIT"
+}
