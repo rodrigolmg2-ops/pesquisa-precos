@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: pesquisa-precos-gov
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+```
+
+---
+
+### Arquivo 4 de 6 — `.gitignore`
+Nome do arquivo: `.gitignore`
+```
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
